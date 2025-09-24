@@ -128,6 +128,51 @@ func (h *ItemHandler) GetSummary(c echo.Context) error {
 	return c.JSON(http.StatusOK, summary)
 }
 
+func (h *ItemHandler) UpdateItem(c echo.Context) error {
+	idStr := c.Param("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, ErrorResponse{
+			Error: "invalid item ID",
+		})
+	}
+
+	var input usecase.UpdateItemInput
+	if err := c.Bind(&input); err != nil {
+		return c.JSON(http.StatusBadRequest, ErrorResponse{
+			Error: "invalid request format",
+		})
+	}
+
+	// バリデーション
+	if validationErrors := validateUpdateItemInput(input); len(validationErrors) > 0 {
+		return c.JSON(http.StatusBadRequest, ErrorResponse{
+			Error:   "validation failed",
+			Details: validationErrors,
+		})
+	}
+
+	item, err := h.itemUsecase.UpdateItem(c.Request().Context(), id, input)
+	if err != nil {
+		if domainErrors.IsNotFoundError(err) {
+			return c.JSON(http.StatusNotFound, ErrorResponse{
+				Error: "item not found",
+			})
+		}
+		if domainErrors.IsValidationError(err) {
+			return c.JSON(http.StatusBadRequest, ErrorResponse{
+				Error:   "validation failed",
+				Details: []string{err.Error()},
+			})
+		}
+		return c.JSON(http.StatusInternalServerError, ErrorResponse{
+			Error: "failed to update item",
+		})
+	}
+
+	return c.JSON(http.StatusOK, item)
+}
+
 func validateCreateItemInput(input usecase.CreateItemInput) []string {
 	var errs []string
 
@@ -145,6 +190,22 @@ func validateCreateItemInput(input usecase.CreateItemInput) []string {
 		errs = append(errs, "purchase_date is required")
 	}
 	if input.PurchasePrice < 0 {
+		errs = append(errs, "purchase_price must be 0 or greater")
+	}
+
+	return errs
+}
+
+func validateUpdateItemInput(input usecase.UpdateItemInput) []string {
+	var errs []string
+
+	// 少なくとも1つのフィールドが更新対象であること
+	if input.Name == nil && input.Brand == nil && input.PurchasePrice == nil {
+		errs = append(errs, "at least one field (name, brand, purchase_price) must be provided for update")
+	}
+
+	// purchase_priceが指定されている場合、0以上であること
+	if input.PurchasePrice != nil && *input.PurchasePrice < 0 {
 		errs = append(errs, "purchase_price must be 0 or greater")
 	}
 
