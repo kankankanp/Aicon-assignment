@@ -115,6 +115,10 @@ func (u *itemUsecase) UpdateItem(ctx context.Context, id int64, input UpdateItem
 		existingItem.PurchasePrice = int(*input.PurchasePrice)
 	}
 
+	if existingItem.PurchasePrice < 0 {
+		return nil, fmt.Errorf("%w: purchase_price must be 0 or greater", domainErrors.ErrInvalidInput)
+	}
+
 	updatedItem, err := u.itemRepo.Update(ctx, existingItem)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update item: %w", err)

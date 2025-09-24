@@ -488,6 +488,99 @@ func TestItemUsecase_UpdateItem(t *testing.T) {
 			expectedItem: &entity.Item{ID: 1, Name: "更新された時計", Category: "時計", Brand: "ROLEX", PurchasePrice: 1000000, PurchaseDate: "2023-01-01"},
 		},
 		{
+			name: "正常系: ブランドのみ更新",
+			id:    3,
+			input: UpdateItemInput{Brand: strPtr("PRADA")},
+			setupMock: func(mockRepo *MockItemRepository) {
+				originalItem, _ := entity.NewItem("靴", "靴", "NIKE", 10000, "2023-03-01")
+				originalItem.ID = 3
+				mockRepo.On("FindByID", mock.Anything, int64(3)).Return(originalItem, nil).Once()
+
+				updatedItem := *originalItem
+				updatedItem.Brand = "PRADA"
+				mockRepo.On("Update", mock.Anything, mock.MatchedBy(func(item *entity.Item) bool {
+					return item.ID == 3 && item.Brand == "PRADA" && item.Name == originalItem.Name
+				})).Return(&updatedItem, nil).Once()
+			},
+			expectError: false,
+			expectedItem: &entity.Item{ID: 3, Name: "靴", Category: "靴", Brand: "PRADA", PurchasePrice: 10000, PurchaseDate: "2023-03-01"},
+		},
+		{
+			name: "正常系: 購入価格のみ更新",
+			id:    4,
+			input: UpdateItemInput{PurchasePrice: float64Ptr(30000.0)},
+			setupMock: func(mockRepo *MockItemRepository) {
+				originalItem, _ := entity.NewItem("ジュエリー", "ジュエリー", "TIFFANY", 20000, "2023-04-01")
+				originalItem.ID = 4
+				mockRepo.On("FindByID", mock.Anything, int64(4)).Return(originalItem, nil).Once()
+
+				updatedItem := *originalItem
+				updatedItem.PurchasePrice = 30000
+				mockRepo.On("Update", mock.Anything, mock.MatchedBy(func(item *entity.Item) bool {
+					return item.ID == 4 && item.PurchasePrice == 30000 && item.Name == originalItem.Name
+				})).Return(&updatedItem, nil).Once()
+			},
+			expectError: false,
+			expectedItem: &entity.Item{ID: 4, Name: "ジュエリー", Category: "ジュエリー", Brand: "TIFFANY", PurchasePrice: 30000, PurchaseDate: "2023-04-01"},
+		},
+		{
+			name: "正常系: 名前とブランドを更新",
+			id:    5,
+			input: UpdateItemInput{Name: strPtr("新しい名前のその他"), Brand: strPtr("OTHER_BRAND")},
+			setupMock: func(mockRepo *MockItemRepository) {
+				originalItem, _ := entity.NewItem("その他アイテム", "その他", "UNKNOWN", 5000, "2023-05-01")
+				originalItem.ID = 5
+				mockRepo.On("FindByID", mock.Anything, int64(5)).Return(originalItem, nil).Once()
+
+				updatedItem := *originalItem
+				updatedItem.Name = "新しい名前のその他"
+				updatedItem.Brand = "OTHER_BRAND"
+				mockRepo.On("Update", mock.Anything, mock.MatchedBy(func(item *entity.Item) bool {
+					return item.ID == 5 && item.Name == "新しい名前のその他" && item.Brand == "OTHER_BRAND" && item.PurchasePrice == originalItem.PurchasePrice
+				})).Return(&updatedItem, nil).Once()
+			},
+			expectError: false,
+			expectedItem: &entity.Item{ID: 5, Name: "新しい名前のその他", Category: "その他", Brand: "OTHER_BRAND", PurchasePrice: 5000, PurchaseDate: "2023-05-01"},
+		},
+		{
+			name: "正常系: 名前と購入価格を更新",
+			id:    6,
+			input: UpdateItemInput{Name: strPtr("ブランド時計"), PurchasePrice: float64Ptr(1200000.0)},
+			setupMock: func(mockRepo *MockItemRepository) {
+				originalItem, _ := entity.NewItem("古いブランド時計", "時計", "OMEGA", 1000000, "2023-06-01")
+				originalItem.ID = 6
+				mockRepo.On("FindByID", mock.Anything, int64(6)).Return(originalItem, nil).Once()
+
+				updatedItem := *originalItem
+				updatedItem.Name = "ブランド時計"
+				updatedItem.PurchasePrice = 1200000
+				mockRepo.On("Update", mock.Anything, mock.MatchedBy(func(item *entity.Item) bool {
+					return item.ID == 6 && item.Name == "ブランド時計" && item.PurchasePrice == 1200000 && item.Brand == originalItem.Brand
+				})).Return(&updatedItem, nil).Once()
+			},
+			expectError: false,
+			expectedItem: &entity.Item{ID: 6, Name: "ブランド時計", Category: "時計", Brand: "OMEGA", PurchasePrice: 1200000, PurchaseDate: "2023-06-01"},
+		},
+		{
+			name: "正常系: ブランドと購入価格を更新",
+			id:    7,
+			input: UpdateItemInput{Brand: strPtr("NEW_BRAND"), PurchasePrice: float64Ptr(75000.0)},
+			setupMock: func(mockRepo *MockItemRepository) {
+				originalItem, _ := entity.NewItem("古いアイテム", "その他", "OLD_BRAND", 50000, "2023-07-01")
+				originalItem.ID = 7
+				mockRepo.On("FindByID", mock.Anything, int64(7)).Return(originalItem, nil).Once()
+
+				updatedItem := *originalItem
+				updatedItem.Brand = "NEW_BRAND"
+				updatedItem.PurchasePrice = 75000
+				mockRepo.On("Update", mock.Anything, mock.MatchedBy(func(item *entity.Item) bool {
+					return item.ID == 7 && item.Brand == "NEW_BRAND" && item.PurchasePrice == 75000 && item.Name == originalItem.Name
+				})).Return(&updatedItem, nil).Once()
+			},
+			expectError: false,
+			expectedItem: &entity.Item{ID: 7, Name: "古いアイテム", Category: "その他", Brand: "NEW_BRAND", PurchasePrice: 75000, PurchaseDate: "2023-07-01"},
+		},
+		{
 			name: "正常系: 全ての更新可能フィールドを更新",
 			id:    2,
 			input: UpdateItemInput{Name: strPtr("新しいバッグ"), Brand: strPtr("GUCCI"), PurchasePrice: float64Ptr(250000.0)},
@@ -505,7 +598,7 @@ func TestItemUsecase_UpdateItem(t *testing.T) {
 				})).Return(&updatedItem, nil).Once()
 			},
 			expectError: false,
-			expectedItem: &entity.Item{ID: 2, Name: "新しいバッグ", Category: "バッグ", Brand: "GUCCI", PurchasePrice: 250000, PurchaseDate: "2023-02-01"},
+							expectedItem: &entity.Item{ID: 2, Name: "新しいバッグ", Category: "バッグ", Brand: "GUCCI", PurchasePrice: 250000, PurchaseDate: "2023-02-01"},
 		},
 		{
 			name: "異常系: アイテムが見つからない",
@@ -554,6 +647,9 @@ func TestItemUsecase_UpdateItem(t *testing.T) {
 			id:    1,
 			input: UpdateItemInput{PurchasePrice: float64Ptr(-100.0)},
 			setupMock: func(mockRepo *MockItemRepository) {
+				originalItem, _ := entity.NewItem("古い時計", "時計", "ROLEX", 1000000, "2023-01-01")
+				originalItem.ID = 1
+				mockRepo.On("FindByID", mock.Anything, int64(1)).Return(originalItem, nil).Once()
 			},
 			expectError: true,
 			expectedErr: domainErrors.ErrInvalidInput,
